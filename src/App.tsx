@@ -1,12 +1,12 @@
-import './App.css'
+import "./App.css";
+import { DiceRollerFeature } from "./features/dice-roller/DiceRollerFeature";
 
 function App() {
-
   return (
     <>
-      <div></div>
+      <DiceRollerFeature />
     </>
-  )
+  );
 }
 
-export default App
+export default App;
