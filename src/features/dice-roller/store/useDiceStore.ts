@@ -59,6 +59,14 @@ export const useDiceStore = create<DiceState>((set, get) => ({
       total,
     };
 
+    setTimeout(() => {
+      const { isRolling } = get();
+      if (isRolling) {
+        console.warn('Roll animation timed out or frame dropped. Force UI unlock.');
+        set({ isRolling: false });
+      }
+    }, 5000);
+
     set((state) => ({
       isRolling: true,
       currentRolls: newRolls,

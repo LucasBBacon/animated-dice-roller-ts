@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { useDiceStore } from "../../store/useDiceStore";
 import { useDiceNormals } from "../../hooks/useDiceNormals";
 import { calculateFermatDistribution } from "../../utils/layout";
+import { useControls } from "leva";
 
 interface DieAnimationState {
   startQuat: THREE.Quaternion;
@@ -18,6 +19,7 @@ const ANIMATION_DURATION = 1.5; // Seconds
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
 
 export const InstancedD20: React.FC = () => {
+  const diceCount = useDiceStore((state) => state.diceCount);
   const currentRolls = useDiceStore((state) => state.currentRolls);
   const completeRoll = useDiceStore((state) => state.completeRoll);
 
@@ -25,6 +27,19 @@ export const InstancedD20: React.FC = () => {
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const animationData = useRef<DieAnimationState[]>([]);
   const isAnimating = useRef(false);
+
+  const { timeScale, showLayout } = useControls({
+    timeScale: { value: 1.0, min: 0.1, max: 2.0 },
+    showLayout: false,
+  });
+
+  const layoutTargets = useMemo(
+    () =>
+      Array.from({ length: diceCount }, (_, index) =>
+        calculateFermatDistribution(index),
+      ),
+    [diceCount],
+  );
 
   // 1. Asset Extraction
   const { nodes, materials } = useGLTF("/models/D20.glb");
@@ -37,6 +52,18 @@ export const InstancedD20: React.FC = () => {
     () => (material ? material.clone() : null),
     [material],
   );
+
+  // 1. Log the payload when R3F receives it
+  useEffect(() => {
+    if (currentRolls.length > 0) {
+      console.log(`[WebGL] Received new roll array: [${currentRolls.join(", ")}]`);
+    }
+  }, [currentRolls]);
+
+  // 2. Log when the normal extraction runs (should only happen ONCE)
+  useEffect(() => {
+    console.log(`[WebGL] Loaded ${Object.keys(normals).length} face normals from GLTF.`);
+  }, [normals]);
 
   useEffect(() => {
     return () => {
@@ -98,7 +125,7 @@ export const InstancedD20: React.FC = () => {
 
     for (let i = 0; i < currentRolls.length; i++) {
       const data = animationData.current[i];
-      const elapsed = (now - data.startTime) / 1000;
+      const elapsed = ((now - data.startTime) / 1000) * timeScale;
 
       // Skip this frame if the stagger delay hasn't finished
       if (elapsed < 0) {
@@ -166,13 +193,23 @@ export const InstancedD20: React.FC = () => {
   if (!geometry || !material || !dieMaterial) return null;
 
   return (
-    <instancedMesh
-      ref={meshRef}
-      args={[geometry, dieMaterial, currentRolls.length]}
-      // Set the count dynamically so Three.js ignores any unused buffer slots
-      count={currentRolls.length}
-      castShadow
-      receiveShadow
-    />
+    <>
+      <instancedMesh
+        ref={meshRef}
+        args={[geometry, dieMaterial, currentRolls.length]}
+        // Set the count dynamically so Three.js ignores any unused buffer slots
+        count={currentRolls.length}
+        castShadow
+        receiveShadow
+      />
+
+      {showLayout &&
+        layoutTargets.map((target, index) => (
+          <mesh key={index} position={[target.x, 0.12, target.z]}>
+            <sphereGeometry args={[0.14, 12, 12]} />
+            <meshStandardMaterial color="#ff2b2b" emissive="#330000" />
+          </mesh>
+        ))}
+    </>
   );
 };
