@@ -1,7 +1,33 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrthographicCamera, Stats } from "@react-three/drei";
-import { InstancedD20 } from "./InstancedD20";
+import { useDiceStore, type DieType } from "../../store/useDiceStore";
+import { InstancedPolyhedron } from "./InstancedPolyhedron";
+
+const DIE_TYPES: DieType[] = ["d4", "d6", "d8", "d10", "d12", "d20"];
+
+const RollLifecycleWatcher: React.FC = () => {
+  const currentRolls = useDiceStore((state) => state.currentRolls);
+  const completeRoll = useDiceStore((state) => state.completeRoll);
+  const isRolling = useDiceStore((state) => state.isRolling);
+
+  useEffect(() => {
+    if (isRolling && currentRolls.length > 0) {
+      // calculate how long the entire set should take to animate
+      // base duration (1500ms) + (max global index * 50ms stagger)
+      const maxStagger = (currentRolls.length - 1) * 50;
+      const totalDuration = 1500 + maxStagger;
+
+      const timer = setTimeout(() => {
+        completeRoll();
+      }, totalDuration);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isRolling, currentRolls, completeRoll]);
+
+  return null;
+};
 
 export const DiceScene: React.FC = () => {
   return (
@@ -12,8 +38,9 @@ export const DiceScene: React.FC = () => {
       style={{ width: "100%", height: "100%" }}
     >
       <Canvas shadows="percentage" dpr={[1, 2]}>
+        <RollLifecycleWatcher />
         <Stats />
-        
+
         {/* 
           Orthographic camera positioned high on the Y axis, looking straight down.
           The zoom prop dictates how much of the logical scene fits in the CSS container.
@@ -53,7 +80,9 @@ export const DiceScene: React.FC = () => {
         </directionalLight>
 
         <Suspense fallback={null}>
-          <InstancedD20 />
+          {DIE_TYPES.map((type) => (
+            <InstancedPolyhedron key={type} type={type} />
+          ))}
         </Suspense>
 
         {/* 

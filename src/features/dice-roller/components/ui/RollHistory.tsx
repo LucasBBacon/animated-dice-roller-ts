@@ -15,6 +15,15 @@ export const RollHistory: React.FC = () => {
           // if a roll is active, 0 index is one on canvas
           const isCurrentRoll = index === 0 && isRolling;
 
+          const groupedRolls = record.rolls.reduce(
+            (acc, roll) => {
+              if (!acc[roll.type]) acc[roll.type] = [];
+              acc[roll.type].push(roll.value);
+              return acc;
+            },
+            {} as Record<string, number[]>,
+          );
+
           return (
             <li
               key={record.id}
@@ -26,9 +35,20 @@ export const RollHistory: React.FC = () => {
                     hour12: false,
                   })}
                 </span>
-                <span className="history-dice-array">
-                  [{isCurrentRoll ? "..." : record.values.join(", ")}]
-                </span>
+                <div className="history-dice-groups">
+                  {isCurrentRoll ? (
+                    <span className="rolling-indicator">Tumbling...</span>
+                  ) : (
+                    Object.entries(groupedRolls).map(([type, values]) => (
+                      <span key={type} className="dice-group">
+                        <strong className="dice-group-label">{type}:</strong>
+                        <span className="dice-group-values">
+                          [{values.join(", ")}]
+                        </span>
+                      </span>
+                    ))
+                  )}
+                </div>
               </div>
               <div className="history-total">
                 {isCurrentRoll ? "?" : record.total}

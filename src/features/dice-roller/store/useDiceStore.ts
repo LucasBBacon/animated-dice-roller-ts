@@ -1,81 +1,89 @@
 import { create } from 'zustand';
 
+export type DieType = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20';
+
+export interface SingleRoll {
+  type: DieType;
+  value: number;
+  globalIndex: number;
+}
+
 export interface RollRecord {
   id: string;
   timestamp: number;
-  values: number[];
+  rolls: SingleRoll[];
   total: number;
 }
 
 interface DiceState {
-  diceCount: number;
+  pool: Record<DieType, number>;
   isRolling: boolean;
-  currentRolls: number[];
+  currentRolls: SingleRoll[];
   rollHistory: RollRecord[];
 
-  // Actions
-  incrementDiceCount: () => void;
-  decrementDiceCount: () => void;
+  updatePool: (type: DieType, delta: number) => void;
   rollDice: () => void;
   completeRoll: () => void;
 }
 
-const MAX_DICE = 30; // Hard limit to prevent WebGL buffer overflow
+const DIE_FACES: Record<DieType, number> = {
+  d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20
+}
 
 export const useDiceStore = create<DiceState>((set, get) => ({
-  diceCount: 1,
+  pool: { d4: 0, d6: 0, d8: 0, d10: 0, d12: 0, d20: 0 },
   isRolling: false,
   currentRolls: [],
   rollHistory: [],
 
-  incrementDiceCount: () => {
-    const { isRolling, diceCount } = get();
-    if (isRolling || diceCount >= MAX_DICE) return;
-    set({ diceCount: diceCount + 1 });
-  },
+  updatePool: (type, delta) => {
+    const { isRolling, pool } = get();
+    if (isRolling) return;
 
-  decrementDiceCount: () => {
-    const { isRolling, diceCount } = get();
-    if (isRolling || diceCount <= 1) return;
-    set({ diceCount: diceCount - 1 });
+    const newCount = Math.max(0, pool[type] + delta);
+    set({ pool: { ...pool, [type]: newCount }});
   },
 
   rollDice: () => {
-    const { isRolling, diceCount } = get();
+    const { isRolling, pool } = get();
     if (isRolling) return;
 
-    // Use Web Crypto API for true RNG distribution
-    const randomBuffer = new Uint32Array(diceCount);
-    window.crypto.getRandomValues(randomBuffer);
+    const newRolls: SingleRoll[] = [];
+    let globalIndex = 0;
     
-    // Map the 32-bit integers to a 1-20 range
-    const newRolls = Array.from(randomBuffer).map(num => (num % 20) + 1);
-    const total = newRolls.reduce((sum, val) => sum + val, 0);
+    (Object.keys(pool) as DieType[]).forEach((type) => {
+      const count = pool[type];
+      if (count === 0) return;
+
+      const randomBuffer = new Uint32Array(count);
+      window.crypto.getRandomValues(randomBuffer);
+
+      for (let i = 0; i < count; i++) {
+        newRolls.push({
+          type,
+          value: (randomBuffer[i] % DIE_FACES[type]) + 1,
+          globalIndex: globalIndex++,
+        });
+      }
+    });
+
+    if (newRolls.length === 0) return;
 
     const record: RollRecord = {
       id: crypto.randomUUID(),
       timestamp: Date.now(),
-      values: newRolls,
-      total,
-    };
+      rolls: newRolls,
+      total: newRolls.reduce((sum, val) => sum + val.value, 0),
+    }
 
     setTimeout(() => {
-      const { isRolling } = get();
-      if (isRolling) {
-        console.warn('Roll animation timed out or frame dropped. Force UI unlock.');
+      if (get().isRolling) {
         set({ isRolling: false });
       }
     }, 5000);
 
-    set((state) => ({
-      isRolling: true,
-      currentRolls: newRolls,
-      // Prepend the new record so the most recent roll is at index 0
-      rollHistory: [record, ...state.rollHistory],
-    }));
+    set((state) => ({ isRolling: true, currentRolls: newRolls, rollHistory: [record, ...state.rollHistory] }));
   },
 
-  completeRoll: () => {
-    set({ isRolling: false });
-  }
+  completeRoll: () => set({ isRolling: false }),
 }));

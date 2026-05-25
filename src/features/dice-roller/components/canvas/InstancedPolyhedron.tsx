@@ -1,51 +1,42 @@
-import React, { useRef, useMemo, useEffect } from "react";
-import { useFrame } from "@react-three/fiber";
-import { useGLTF } from "@react-three/drei";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type React from "react";
 import * as THREE from "three";
-import { useDiceStore } from "../../store/useDiceStore";
+import { useDiceStore, type DieType } from "../../store/useDiceStore";
+import { useShallow } from "zustand/react/shallow";
+import { useEffect, useMemo, useRef } from "react";
+import { useGLTF } from "@react-three/drei";
 import { useDiceNormals } from "../../hooks/useDiceNormals";
 import { calculateFermatDistribution } from "../../utils/layout";
+import { useFrame } from "@react-three/fiber";
 import { useControls } from "leva";
 
-interface DieAnimationState {
-  startQuat: THREE.Quaternion;
-  targetQuat: THREE.Quaternion;
-  targetPos: THREE.Vector3;
-  initialSpin: THREE.Vector3;
-  startTime: number;
+interface Props {
+  type: DieType;
 }
 
 const ANIMATION_DURATION = 1.5; // Seconds
-const WORLD_UP = new THREE.Vector3(0, 1, 0);
 
-export const InstancedD20: React.FC = () => {
-  const diceCount = useDiceStore((state) => state.diceCount);
-  const currentRolls = useDiceStore((state) => state.currentRolls);
+export const InstancedPolyhedron: React.FC<Props> = ({ type }) => {
+  const rolls = useDiceStore(
+    useShallow((state) => state.currentRolls.filter((r) => r.type === type)),
+  );
   const completeRoll = useDiceStore((state) => state.completeRoll);
 
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
-  const animationData = useRef<DieAnimationState[]>([]);
+  const animationData = useRef<any[]>([]);
   const isAnimating = useRef(false);
 
-  const { timeScale, showLayout } = useControls({
+  const { timeScale } = useControls({
     timeScale: { value: 1.0, min: 0.1, max: 2.0 },
     showLayout: false,
   });
 
-  const layoutTargets = useMemo(
-    () =>
-      Array.from({ length: diceCount }, (_, index) =>
-        calculateFermatDistribution(index),
-      ),
-    [diceCount],
-  );
+  // dynamically load the correct asset based on the type prop
+  const modelPath = `/models/${type.toUpperCase()}.glb`;
+  const { nodes, materials } = useGLTF(modelPath);
+  const normals = useDiceNormals(modelPath);
 
-  // 1. Asset Extraction
-  const { nodes, materials } = useGLTF("/models/D20.glb");
-  const normals = useDiceNormals("/models/D20.glb");
-
-  // Safely extract the raw geometry and material buffers
   const geometry = (nodes.DieMesh as THREE.Mesh)?.geometry;
   const material = materials.DieMat as THREE.Material;
   const dieMaterial = useMemo(
@@ -55,52 +46,42 @@ export const InstancedD20: React.FC = () => {
 
   // 1. Log the payload when R3F receives it
   useEffect(() => {
-    if (currentRolls.length > 0) {
-      console.log(`[WebGL] Received new roll array: [${currentRolls.join(", ")}]`);
+    if (rolls.length > 0) {
+      console.log(`[WebGL] Received new roll array: [${rolls.join(", ")}]`);
     }
-  }, [currentRolls]);
+  }, [rolls]);
 
   // 2. Log when the normal extraction runs (should only happen ONCE)
   useEffect(() => {
-    console.log(`[WebGL] Loaded ${Object.keys(normals).length} face normals from GLTF.`);
+    console.log(
+      `[WebGL] Loaded ${Object.keys(normals).length} face normals from GLTF.`,
+    );
   }, [normals]);
 
   useEffect(() => {
-    return () => {
-      dieMaterial?.dispose();
-    };
-  }, [dieMaterial]);
-
-  // 2. Trajectory Initialization
-  useEffect(() => {
-    if (currentRolls.length === 0) return;
+    if (rolls.length === 0) return;
 
     const now = performance.now();
     isAnimating.current = true;
 
-    animationData.current = currentRolls.map((rollValue, index) => {
-      // Calculate target orientation based on extracted normals
-      const targetNormal = normals[rollValue] || WORLD_UP;
+    animationData.current = rolls.map((roll) => {
+      const targetNormal = normals[roll.value] || new THREE.Vector3(0, 1, 0);
       const baseAlignment = new THREE.Quaternion().setFromUnitVectors(
         targetNormal,
-        WORLD_UP,
+        new THREE.Vector3(0, 1, 0),
       );
-
-      // Apply random Y-axis yaw so the "20" doesn't always face the exact same direction
-      const randomYaw = new THREE.Quaternion().setFromAxisAngle(
-        WORLD_UP,
-        Math.random() * Math.PI * 2,
-      );
-      const targetQuat = randomYaw.multiply(baseAlignment);
+      const targetQuat = new THREE.Quaternion()
+        .setFromAxisAngle(
+          new THREE.Vector3(0, 1, 0),
+          Math.random() * Math.PI * 2,
+        )
+        .multiply(baseAlignment);
 
       return {
         targetQuat,
-        targetPos: calculateFermatDistribution(index),
-        // Stagger the drops by 50ms per die
-        startTime: now + index * 50,
-        // Start completely randomized
+        targetPos: calculateFermatDistribution(roll.globalIndex),
+        startTime: now + roll.globalIndex * 50,
         startQuat: new THREE.Quaternion().random(),
-        // Massive initial spin that will zero out to identity (0,0,0)
         initialSpin: new THREE.Vector3(
           (Math.random() * 4 + 4) * Math.PI * 2,
           (Math.random() * 4 + 4) * Math.PI * 2,
@@ -108,9 +89,8 @@ export const InstancedD20: React.FC = () => {
         ),
       };
     });
-  }, [currentRolls, normals]);
+  }, [rolls, normals]);
 
-  // 3. Matrix Composition Loop
   useFrame(() => {
     if (
       !isAnimating.current ||
@@ -123,7 +103,7 @@ export const InstancedD20: React.FC = () => {
     let needsMatrixUpdate = false;
     const now = performance.now();
 
-    for (let i = 0; i < currentRolls.length; i++) {
+    for (let i = 0; i < rolls.length; i++) {
       const data = animationData.current[i];
       const elapsed = ((now - data.startTime) / 1000) * timeScale;
 
@@ -190,26 +170,20 @@ export const InstancedD20: React.FC = () => {
   });
 
   // Guard clause against missing assets
-  if (!geometry || !material || !dieMaterial) return null;
+  if (!geometry || !material || !dieMaterial || rolls.length === 0) return null;
 
   return (
-    <>
-      <instancedMesh
-        ref={meshRef}
-        args={[geometry, dieMaterial, currentRolls.length]}
-        // Set the count dynamically so Three.js ignores any unused buffer slots
-        count={currentRolls.length}
-        castShadow
-        receiveShadow
-      />
-
-      {showLayout &&
-        layoutTargets.map((target, index) => (
-          <mesh key={index} position={[target.x, 0.12, target.z]}>
-            <sphereGeometry args={[0.14, 12, 12]} />
-            <meshStandardMaterial color="#ff2b2b" emissive="#330000" />
-          </mesh>
-        ))}
-    </>
+    <instancedMesh
+      ref={meshRef}
+      args={[geometry, dieMaterial, rolls.length]}
+      // Set the count dynamically so Three.js ignores any unused buffer slots
+      count={rolls.length}
+      castShadow
+      receiveShadow
+    />
   );
 };
+
+["d4", "d6", "d8", "d10", "d12", "d20"].forEach((type) => {
+  useGLTF.preload(`/models/${type.toUpperCase()}.glb`);
+});
