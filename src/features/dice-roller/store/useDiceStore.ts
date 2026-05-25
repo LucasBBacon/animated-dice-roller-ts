@@ -4,9 +4,16 @@ import { parseRollNotation } from "../utils/parser";
 
 export type DieType = "d4" | "d6" | "d8" | "d10" | "d12" | "d20";
 
+export interface KeepRule {
+  type: DieType;
+  operation: "kh" | "kl";
+  count: number;
+}
+
 export interface SingleRoll {
   type: DieType;
   value: number;
+  dropped: boolean;
   globalIndex: number;
 }
 
@@ -24,6 +31,7 @@ interface DiceState {
   isRolling: boolean;
   currentRolls: SingleRoll[];
   rollHistory: RollRecord[];
+  activeRules: KeepRule[];
 
   updatePool: (type: DieType, delta: number) => void;
   rollDice: () => void;
@@ -46,6 +54,7 @@ export const useDiceStore = create<DiceState>((set, get) => ({
   isRolling: false,
   currentRolls: [],
   rollHistory: [],
+  activeRules: [],
 
   updatePool: (type, delta) => {
     const { isRolling, pool } = get();
@@ -56,12 +65,11 @@ export const useDiceStore = create<DiceState>((set, get) => ({
   },
 
   rollDice: () => {
-    const { isRolling, pool, modifier } = get();
+    const { isRolling, pool, modifier, activeRules } = get();
     if (isRolling) return;
 
     const newRolls: SingleRoll[] = [];
     let globalIndex = 0;
-    let baseTotal = 0;
 
     (Object.keys(pool) as DieType[]).forEach((type) => {
       const count = pool[type];
@@ -76,9 +84,34 @@ export const useDiceStore = create<DiceState>((set, get) => ({
         newRolls.push({
           type,
           value,
+          dropped: false,
           globalIndex: globalIndex++,
         });
       }
+    });
+
+    activeRules?.forEach((rule) => {
+      const targetDice = newRolls.filter((r) => r.type === rule.type);
+      if (targetDice.length <= rule.count) return;
+
+      const sorted = [...targetDice].sort((a, b) => a.value - b.value);
+
+      const diceToDrop =
+        rule.operation === "kh"
+          ? sorted.slice(0, sorted.length - rule.count)
+          : sorted.slice(rule.count);
+
+      diceToDrop.forEach((die) => {
+        const originalDie = newRolls.find(
+          (r) => r.globalIndex === die.globalIndex,
+        );
+        if (originalDie) originalDie.dropped = true;
+      });
+    });
+
+    let baseTotal = 0;
+    newRolls.forEach((roll) => {
+      if (!roll.dropped) baseTotal += roll.value;
     });
 
     if (newRolls.length === 0) return;
@@ -103,6 +136,7 @@ export const useDiceStore = create<DiceState>((set, get) => ({
       isRolling: true,
       currentRolls: newRolls,
       rollHistory: [record, ...state.rollHistory],
+      activeRules: [],
     }));
   },
 
@@ -112,11 +146,13 @@ export const useDiceStore = create<DiceState>((set, get) => ({
 
     let targetPool: Partial<Record<DieType, number>> = {};
     let targetModifier = 0;
+    let targetRules: KeepRule[] = [];
 
     if (typeof request === "string") {
       const parsed = parseRollNotation(request);
       targetPool = parsed.pool;
       targetModifier = parsed.modifier;
+      targetRules = parsed.keepRules;
     }
 
     const newPool = {
@@ -129,7 +165,7 @@ export const useDiceStore = create<DiceState>((set, get) => ({
       ...targetPool,
     };
 
-    set({ pool: newPool, modifier: targetModifier });
+    set({ pool: newPool, modifier: targetModifier, activeRules: targetRules });
     get().rollDice();
   },
 

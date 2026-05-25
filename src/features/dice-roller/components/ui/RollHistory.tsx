@@ -1,5 +1,5 @@
 import type React from "react";
-import { useDiceStore } from "../../store/useDiceStore";
+import { useDiceStore, type SingleRoll } from "../../store/useDiceStore";
 
 export const RollHistory: React.FC = () => {
   const rollHistory = useDiceStore((state) => state.rollHistory);
@@ -18,10 +18,10 @@ export const RollHistory: React.FC = () => {
           const groupedRolls = record.rolls.reduce(
             (acc, roll) => {
               if (!acc[roll.type]) acc[roll.type] = [];
-              acc[roll.type].push(roll.value);
+              acc[roll.type].push(roll);
               return acc;
             },
-            {} as Record<string, number[]>,
+            {} as Record<string, SingleRoll[]>,
           );
 
           return (
@@ -39,11 +39,23 @@ export const RollHistory: React.FC = () => {
                   {isCurrentRoll ? (
                     <span className="rolling-indicator">Tumbling...</span>
                   ) : (
-                    Object.entries(groupedRolls).map(([type, values]) => (
+                    Object.entries(groupedRolls).map(([type, rolls]) => (
                       <span key={type} className="dice-group">
                         <strong className="dice-group-label">{type}:</strong>
                         <span className="dice-group-values">
-                          [{values.join(", ")}]
+                          [
+                          {rolls.map((roll, i) => (
+                            <span
+                              key={i}
+                              className={
+                                roll.dropped ? "dropped-die" : "kept-die"
+                              }
+                            >
+                              {roll.value}
+                              {i < rolls.length - 1 ? ", " : ""}
+                            </span>
+                          ))}
+                          ]
                         </span>
                       </span>
                     ))
