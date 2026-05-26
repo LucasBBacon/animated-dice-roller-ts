@@ -1,0 +1,153 @@
+.dice-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 1rem;
+    font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+}
+
+.active-pool-ribbon {
+    background: #f4ebd8;
+    border: 2px solid #2b2118;
+    border-radius: 4px;
+    padding: 0.25rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 1), inset 0 0 10px rgba(139, 115, 85, 0.2);
+    position: relative;
+}
+
+.pool-text {
+    color: #2b2118;
+    font-weight: bold;
+    font-size: 1.1rem;
+    letter-spacing: 0.05em;
+}
+
+.clear-pool-btn {
+    background: transparent;
+    border: none;
+    color: #8b0000;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0;
+    transition: transform 0.2s;
+}
+
+.clear-pool-btn:hover {
+    transform: scale(1.2);
+}
+
+.dice-rack {
+    display: flex;
+    gap: 0.75rem;
+    background: rgba(43, 33, 24, 0.85);
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #cda434;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 1);
+}
+
+.die-rack-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.add-die-btn {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    background-color: #f4ebd8;
+    border: 2px solid #2b2118;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #2b2118;
+    font-weight: bold;
+    font-family: 'Palatino Linotype', serif;
+    transition: all 0.2s ease;
+    box-shadow: inset 0 0 8px rgba(139, 115, 85, 0.5);
+}
+
+.add-die-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    border-color: #cda434;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 0 8px rgba(139, 115, 85, 0.5);
+}
+
+.add-die-btn:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.die-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #8b0000;
+    color: #f4ebd8;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 0.8rem;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid #cda434;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.remove-die-btn {
+    background: transparent;
+    border: none;
+    color: #f4ebd8;
+    font-size: 1.2rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s, color 0.2s;
+    line-height: 1;
+    cursor: auto;
+}
+
+.remove-die-btn.visible {
+    opacity: 0.6;
+    cursor: pointer;
+}
+
+.remove-die-btn.visible:hover {
+    opacity: 1;
+    color: #cda434;
+}
+
+.roll-btn {
+    background: linear-gradient(to bottom, #991b1b, #7f1d1d);
+    color: #f4ebd8;
+    border: 2px solid #cda434;
+    border-radius: 4px;
+    padding: 0.75rem 2rem;
+    font-size: 1.2rem;
+    font-weight: bold;
+    font-family: 'Palatino Linotype', serif;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4), inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.roll-btn:hover:not(:disabled) {
+    background: linear-gradient(to bottom, #b91c1c, #991b1b);
+    transform: scale(1.05);
+    box-shadow: 0 6px 12px rgba(205, 165, 52, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.roll-btn:disabled {
+    filter: grayscale(0.8);
+    opacity: 0.7;
+    cursor: not-allowed;
+}

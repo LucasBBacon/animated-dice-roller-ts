@@ -1,0 +1,114 @@
+.roll-history-container {
+  position: absolute;
+  top: 1rem;
+  left: 0;
+  display: flex;
+  align-items: flex-start;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+}
+
+/* Slide in/out mechanics */
+.roll-history-container.closed {
+  transform: translateX(-100%);
+}
+.roll-history-container.open {
+  transform: translateX(0);
+}
+
+.ledger-tab {
+  position: absolute;
+  right: -80px; /* Push the tab outside the hidden container */
+  top: 10px;
+  background: #f4ebd8;
+  border: 2px solid #2b2118;
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  padding: 0.5rem 0.75rem;
+  font-family: inherit;
+  font-weight: bold;
+  color: #2b2118;
+  cursor: pointer;
+  box-shadow: 4px 4px 6px rgba(0,0,0,0.3);
+  pointer-events: auto;
+}
+
+.roll-history {
+  background: #f4ebd8;
+  border: 3px double #2b2118;
+  border-radius: 0 8px 8px 0;
+  width: 280px;
+  max-height: 450px;
+  padding: 1rem;
+  box-shadow: 8px 8px 16px rgba(0,0,0,0.5), inset 0 0 40px rgba(139, 115, 85, 0.2);
+  overflow-y: auto;
+  pointer-events: auto;
+}
+
+/* Custom Scrollbar for the parchment */
+.roll-history::-webkit-scrollbar { width: 6px; }
+.roll-history::-webkit-scrollbar-track { background: rgba(139, 115, 85, 0.2); }
+.roll-history::-webkit-scrollbar-thumb { background: #8b7355; border-radius: 4px; }
+
+.history-title {
+  margin: 0 0 1rem 0;
+  border-bottom: 1px solid #2b2118;
+  padding-bottom: 0.5rem;
+  color: #2b2118;
+  text-align: center;
+  font-size: 1.2rem;
+  letter-spacing: 0.05em;
+}
+
+.drop-cap {
+  font-size: 2rem;
+  float: left;
+  line-height: 0.8;
+  margin-right: 4px;
+  color: #8b0000;
+}
+
+.history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px dashed rgba(43, 33, 24, 0.3);
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-meta {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.9rem;
+}
+
+.history-time {
+  color: #8b7355;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.history-total {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #8b0000;
+  text-shadow: 1px 1px 0 rgba(205, 164, 52, 0.5); /* Gold drop shadow */
+}
+
+/* Rule highlighting */
+.max-roll { color: #15803d; font-weight: 900; }
+.min-roll { color: #b91c1c; font-weight: 900; }
+.dropped-die { text-decoration: line-through; opacity: 0.5; }

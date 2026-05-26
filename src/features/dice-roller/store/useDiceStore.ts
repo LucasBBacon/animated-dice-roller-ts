@@ -40,6 +40,7 @@ interface DiceState {
   rollDice: () => void;
   forceRoll: (request: RollRequest) => void;
   completeRoll: () => void;
+  clearPool: () => void;
 }
 
 const DIE_FACES: Record<DieType, number> = {
@@ -177,4 +178,20 @@ export const useDiceStore = create<DiceState>((set, get) => ({
   },
 
   completeRoll: () => set({ isRolling: false }),
+
+  clearPool: () => {
+    const { isRolling } = get();
+    if (isRolling) return;
+    set({
+      pool: {
+        d4: 0,
+        d6: 0,
+        d8: 0,
+        d10: 0,
+        d12: 0,
+        d20: 0,
+      },
+      modifier: 0,
+    });
+  },
 }));
