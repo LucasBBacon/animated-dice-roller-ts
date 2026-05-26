@@ -43,3 +43,14 @@
   opacity: 0.4;
   color: #ff4444;
 }
+
+.max-roll {
+  color: #22c55e;
+  font-weight: 800;
+  text-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+}
+
+.min-roll {
+  color: #ef4444;
+  font-weight: 800;
+}

@@ -44,17 +44,22 @@ export const RollHistory: React.FC = () => {
                         <strong className="dice-group-label">{type}:</strong>
                         <span className="dice-group-values">
                           [
-                          {rolls.map((roll, i) => (
-                            <span
-                              key={i}
-                              className={
-                                roll.dropped ? "dropped-die" : "kept-die"
-                              }
-                            >
-                              {roll.value}
-                              {i < rolls.length - 1 ? ", " : ""}
-                            </span>
-                          ))}
+                          {rolls.map((roll, i) => {
+                            let statusClass = "kept-die";
+                            if (roll.dropped) {
+                              statusClass = "dropped-die";
+                            } else if (roll.isMax) {
+                              statusClass = "max-roll";
+                            } else if (roll.isMin) {
+                              statusClass = "min-roll";
+                            }
+                            return (
+                              <span key={i} className={statusClass}>
+                                {roll.value}
+                                {i < rolls.length - 1 ? ", " : ""}
+                              </span>
+                            );
+                          })}
                           ]
                         </span>
                       </span>

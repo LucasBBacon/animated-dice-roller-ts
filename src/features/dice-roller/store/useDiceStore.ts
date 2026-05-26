@@ -14,6 +14,8 @@ export interface SingleRoll {
   type: DieType;
   value: number;
   dropped: boolean;
+  isMax: boolean;
+  isMin: boolean;
   globalIndex: number;
 }
 
@@ -80,11 +82,12 @@ export const useDiceStore = create<DiceState>((set, get) => ({
 
       for (let i = 0; i < count; i++) {
         const value = (randomBuffer[i] % DIE_FACES[type]) + 1;
-        baseTotal += value;
         newRolls.push({
           type,
           value,
           dropped: false,
+          isMax: value === DIE_FACES[type],
+          isMin: value === 1,
           globalIndex: globalIndex++,
         });
       }
