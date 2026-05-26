@@ -1,73 +1,197 @@
-# React + TypeScript + Vite
+# Animated Dice Roller (TypeScript)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Animated Dice Roller is a React + TypeScript feature module that renders physical-style 3D dice rolls with animation, audio feedback, and roll history.
 
-Currently, two official plugins are available:
+This repository is built as a feature-first implementation you can run directly with Vite or embed into a larger React application.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Repository Description
 
-## React Compiler
+This project provides a reusable dice roller feature with:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- 3D dice rendering using Three.js through React Three Fiber
+- Roll animation with staggered motion and face alignment
+- Dice pool controls for d4, d6, d8, d10, d12, and d20
+- Roll history with grouped die values and totals
+- Programmatic rolling API via React ref
+- Optional notation parsing for string-based roll requests
+- Lightweight global state management with Zustand
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- React 19
+- TypeScript
+- Vite
+- Three.js, @react-three/fiber, @react-three/drei
+- @react-three/rapier (installed dependency)
+- Zustand
+- Leva (debug control for animation speed)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Getting Started
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### 1. Install dependencies
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. Start development server
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run dev
 ```
+
+### 3. Build for production
+
+```bash
+npm run build
+```
+
+### 4. Preview production build
+
+```bash
+npm run preview
+```
+
+## Usage Guide
+
+### Basic usage in app
+
+Render the feature component directly:
+
+```tsx
+import { DiceRollerFeature } from "./features/dice-roller/DiceRollerFeature";
+
+export default function App() {
+	return <DiceRollerFeature />;
+}
+```
+
+### User flow
+
+1. Increase or decrease dice counts per die type with +/- controls.
+2. Click **Roll Dice**.
+3. Watch 3D dice tumble and settle.
+4. Read grouped results and total in History.
+
+### Roll history behavior
+
+- The newest roll appears first.
+- While dice are still animating, the newest entry shows a pending state.
+- Kept/dropped and min/max values are visually distinguished in the history UI.
+
+## Programmatic API
+
+`DiceRollerFeature` exposes an imperative API through `ref`:
+
+```ts
+type RollRequest = string | Partial<Record<"d4" | "d6" | "d8" | "d10" | "d12" | "d20", number>>;
+
+interface DiceRollerAPI {
+	triggerRoll: (request: RollRequest) => void;
+	clearHistory: () => void;
+}
+```
+
+### Example: trigger rolls from parent component
+
+```tsx
+import { useRef } from "react";
+import {
+	DiceRollerFeature,
+} from "./features/dice-roller/DiceRollerFeature";
+import type { DiceRollerAPI } from "./features/dice-roller/types";
+
+export default function Parent() {
+	const diceRef = useRef<DiceRollerAPI>(null);
+
+	return (
+		<>
+			<button onClick={() => diceRef.current?.triggerRoll("4d6kh3")}>Roll 4d6 Keep Highest 3</button>
+			<button onClick={() => diceRef.current?.triggerRoll({ d20: 1 })}>Roll 1d20</button>
+			<button onClick={() => diceRef.current?.clearHistory()}>Clear History</button>
+
+			<DiceRollerFeature
+				ref={diceRef}
+				onRollComplete={(result) => {
+					console.log("Roll complete:", result.total, result.rolls);
+				}}
+			/>
+		</>
+	);
+}
+```
+
+## Supported Dice Types
+
+- d4
+- d6
+- d8
+- d10
+- d12
+- d20
+
+## Roll Request Formats
+
+### 1. Object pool format
+
+Use explicit die counts:
+
+```ts
+{ d6: 2, d8: 1 }
+```
+
+### 2. String notation format
+
+Use tabletop-style notation:
+
+- `2d20`
+- `4d6kh3`
+- `2d10 + 1d4 - 2`
+
+String notation is parsed into:
+
+- dice pool
+- keep-highest or keep-lowest rules (`kh` / `kl`)
+- flat modifier
+
+## Project Structure
+
+```text
+src/
+	features/
+		dice-roller/
+			DiceRollerFeature.tsx
+			types.ts
+			components/
+				canvas/
+					DiceScene.tsx
+					InstancedPolyhedron.tsx
+				ui/
+					DiceControls.tsx
+					RollHistory.tsx
+			hooks/
+				useDiceNormals.ts
+			store/
+				useDiceStore.ts
+			utils/
+				audioEngine.ts
+				layout.ts
+				parser.ts
+```
+
+## Assets
+
+This feature expects static assets in `public/`:
+
+- `public/models/*.glb` for each die geometry
+- `public/audio/dice-clack.mp3` for collision sound effects
+
+## Notes
+
+- Audio playback depends on browser audio context policies and resumes on interaction.
+- The dice scene is constrained by CSS sizing in the feature stylesheet.
+- `onRollComplete` fires when roll animation lifecycle is complete.
+
+## License
+
+Add your preferred license information here.

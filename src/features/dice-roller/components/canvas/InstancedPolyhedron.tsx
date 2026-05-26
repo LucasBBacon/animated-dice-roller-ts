@@ -9,6 +9,7 @@ import { useDiceNormals } from "../../hooks/useDiceNormals";
 import { calculateFermatDistribution } from "../../utils/layout";
 import { useFrame } from "@react-three/fiber";
 import { useControls } from "leva";
+import { audioEngine } from "../../utils/audioEngine";
 
 interface Props {
   type: DieType;
@@ -87,6 +88,7 @@ export const InstancedPolyhedron: React.FC<Props> = ({ type }) => {
           (Math.random() * 4 + 4) * Math.PI * 2,
           (Math.random() * 4 + 4) * Math.PI * 2,
         ),
+        impactThresholds: [0.6, 0.85, 1.0],
       };
     });
   }, [rolls, normals]);
@@ -117,6 +119,14 @@ export const InstancedPolyhedron: React.FC<Props> = ({ type }) => {
       if (t < 1.0) {
         allFinished = false;
         needsMatrixUpdate = true;
+      }
+
+      if (data.impactThresholds.length > 0 && t >= data.impactThresholds[0]) {
+        data.impactThresholds.shift();
+
+        // calculate volume based on bounce (1st bounce loudest)
+        const volume = (data.impactThresholds.length + 1) * 0.3;
+        audioEngine.playClack(volume);
       }
 
       // Cubic ease out (1 - (1 - t)^3)

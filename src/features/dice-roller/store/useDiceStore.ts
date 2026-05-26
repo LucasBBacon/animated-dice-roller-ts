@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { RollRequest } from "../types";
 import { parseRollNotation } from "../utils/parser";
+import { audioEngine } from "../utils/audioEngine";
 
 export type DieType = "d4" | "d6" | "d8" | "d10" | "d12" | "d20";
 
@@ -69,6 +70,9 @@ export const useDiceStore = create<DiceState>((set, get) => ({
   rollDice: () => {
     const { isRolling, pool, modifier, activeRules } = get();
     if (isRolling) return;
+
+    audioEngine.initialize();
+    audioEngine.resumeContext();
 
     const newRolls: SingleRoll[] = [];
     let globalIndex = 0;
